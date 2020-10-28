@@ -545,7 +545,7 @@ __myevic__ void EventHandler()
 				GPIO_SetMode( PD, GPIO_PIN_PIN1_Msk, GPIO_MODE_OUTPUT );
 				PD1 = 0;
 			}
-			else if ( !ISCUBOID && !ISRX200S && !ISRX23 )
+			else if ( !ISCUBOID && ! ISCUBO200 && !ISRX200S && !ISRX23 && !ISRX300 && !ISPRIMO1 && !ISPRIMO2 && !ISPREDATOR )
 			{
 				GPIO_SetMode( PD, GPIO_PIN_PIN7_Msk, GPIO_MODE_OUTPUT );
 				PD7 = 0;
@@ -665,7 +665,12 @@ __myevic__ void EventHandler()
 			{
 				if ( dfStatus.pcurve )
 				{
-					pwr = dfPwrCurve[0] * pwr / 100;
+					pwr = dfPwrCurve[0].power * pwr / 100;
+
+					if ( pwr > AtoMaxPower )
+					{
+						pwr = AtoMaxPower;
+					}
 				}
 				else if ( !PreheatDelay && dfPreheatTime )
 				{
@@ -686,25 +691,19 @@ __myevic__ void EventHandler()
 					}
 
 					pwr = PreheatPower;
+				}
 
-					TargetVolts = GetVoltsForPower( PreheatPower );
-				}
-				else if ( pwr <= 300 )
-				{
-					TargetVolts = dfVWVolts;
-				}
-				else
-				{
-					TargetVolts = GetVoltsForPower( 300 );
-				}
+				if ( pwr > 300 ) pwr = 300;
 
 				gFlags.limit_power = 0;
 				if ( pwr > BatteryMaxPwr )
 				{
 					gFlags.limit_power = 1;
 					PowerScale = 100 * BatteryMaxPwr / pwr;
-					TargetVolts = GetVoltsForPower( BatteryMaxPwr );
+					pwr = BatteryMaxPwr;
 				}
+
+				TargetVolts = GetVoltsForPower( pwr );
 
 				LowBatVolts = ( BatteryVoltage > BatteryCutOff + 100 ) ? 0 : BatteryVoltage;
 			}
@@ -716,7 +715,7 @@ __myevic__ void EventHandler()
 
 			SetADCState( 1, 1 );
 			SetADCState( 2, 1 );
-			if ( ISRX200S || ISRX23 )
+			if ( ISCUBO200 || ISRX200S || ISRX23 || ISRX300 )
 			{
 				SetADCState( 15, 1 );
 			}
@@ -854,6 +853,7 @@ __myevic__ void EventHandler()
 				{
 					dfStatus.off = 0;
 					MainView();
+					SplashTimer = 3;
 				}
 			}
 			else
@@ -947,6 +947,8 @@ __myevic__ void EventHandler()
 				PF2 = 0;
 				PA2 = 0;
 			}
+			ChargeMode = 0;
+			ChargeStep = 0;
 			ChargeStatus = 0;
 			if ( BatteryStatus == 3 || BatteryStatus == 4 )
 			{
@@ -974,8 +976,24 @@ __myevic__ void EventHandler()
 			return;
 
 		case 10:	// USB cable attach
+			ChargeMode = 0;
+			ChargeStep = 0;
 			ChargeStatus = 1;
-			byte_20000055 = 1;
+			if ( NumBatteries > 1 )
+			{
+				if ( ISPRIMO2 || ISPREDATOR )
+				{
+					USBMaxLoad = 3;
+				} 
+				else 
+				{
+					USBMaxLoad = 2;
+				}				
+			}
+			else
+			{
+				USBMaxLoad = 1;
+			}
 			gFlags.low_battery = 0;
 			gFlags.usb_attached = 1;
 			if ( !dfStatus.off )
@@ -1080,7 +1098,14 @@ __myevic__ void EventHandler()
 					{
 						if ( dfMode == 6 )
 						{
-							EditItemIndex = 0;
+							if ( EditItemIndex == 0 )
+							{
+								EditItemIndex = 5;
+							}
+							else
+							{
+								EditItemIndex = 0;
+							}
 						}
 						else
 						{
@@ -1090,13 +1115,14 @@ __myevic__ void EventHandler()
 							}
 							else
 							{
-								EditItemIndex = 0;
+								if ( ++EditItemIndex > 5 )
+									EditItemIndex = 0;
 							}
 						}
 					}
 					else
 					{
-						if ( ++EditItemIndex > 4 )
+						if ( ++EditItemIndex > 5 )
 							EditItemIndex = 0;
 					}
 				}
@@ -1200,6 +1226,7 @@ __myevic__ void EventHandler()
 				if ( EditModeTimer )
 				{
 					EditModeTimer = 1000;
+					gFlags.draw_edited_item = 1;
 
 					switch ( EditItemIndex )
 					{
@@ -1234,6 +1261,23 @@ __myevic__ void EventHandler()
 
 						case 4:
 							if ( ++dfAPT > 8 ) dfAPT = 0;
+							break;
+
+						case 5:
+							if ( !dfStatus.battpc )
+							{
+								dfStatus.battpc = 1;
+								dfStatus.battv = 0;
+							}
+							else if ( !dfStatus.battv )
+							{
+								dfStatus.battv = 1;
+							}
+							else
+							{
+								dfStatus.battv = 0;
+								dfStatus.battpc = 0;
+							}
 							break;
 					}
 

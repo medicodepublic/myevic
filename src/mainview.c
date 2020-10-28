@@ -10,9 +10,10 @@
 
 //=============================================================================
 
-uint16_t	HideLogo = 0;
 uint16_t	BypassVolts;
+uint8_t		HideLogo;
 uint8_t		ShowProfNum;
+uint8_t		SplashTimer;
 
 
 //=============================================================================
@@ -256,7 +257,7 @@ __myevic__ void DrawAPTLine( int line )
 		case 1:	// Puff counter
 		{
 			DrawString( String_PUFF_s, 0, line+2 );
-			DrawValue( 24, line, dfPuffCount, 0, 0x1F, 5 );
+			DrawValueRight( 24+8*5, line, dfPuffCount, 0, 0x1F, 0 );
 			break;
 		}
 
@@ -266,9 +267,9 @@ __myevic__ void DrawAPTLine( int line )
 		//	DrawValue( 24, line, dfTimeCount / 10, 0, 0x1F, 5 );
 			DrawString( String_PUFF_s, 0, line+2 );
 			DrawValueRight( 34, line+2, dfTimeCount / 36000, 0, 0x0B, 0 );
-			DrawImage( 34, line+2, 0x103 );
+			DrawImage( 34, line+2, 0xD7 );
 			DrawValue( 37, line+2, dfTimeCount / 600 % 60, 0, 0x0B, 2 );
-			DrawImage( 49, line+2, 0x103 );
+			DrawImage( 49, line+2, 0xD7 );
 			DrawValue( 52, line+2, dfTimeCount / 10 % 60, 0, 0x0B, 2 );
 			break;
 		}
@@ -502,7 +503,8 @@ __myevic__ void DrawPower( int pwr )
 		}
 		else
 		{
-			DrawValue( 0, 18, pwr, 1, 0x29, 4 );
+			DrawValue( 5, 13, pwr / 10, 0, 0x48, 3 );
+		//	DrawValue( 0, 18, pwr, 1, 0x29, 4 );
 		}
 
 		DrawImage( 54, 26, 0x98 );
@@ -512,7 +514,10 @@ __myevic__ void DrawPower( int pwr )
 	{
 		if ( dfStatus.pcurve )
 		{
-			DrawImage( xp, yp, 0x6A );
+			if ( !PreheatDelay || gFlags.osc_1hz )
+			{
+				DrawImage( xp, yp, 0x6A );
+			}
 		}
 		else if ( dfPreheatTime )
 		{
@@ -539,6 +544,14 @@ __myevic__ void ShowMainView()
 	unsigned int v26; // r2@168
 	int v27; // r3@169
 
+	if ( !gFlags.firing )
+	{
+		if ( gFlags.splash && SplashTimer )
+		{
+			ShowSplash();
+			return;
+		}
+	}
 
 	DrawMode();
 
@@ -650,7 +663,7 @@ __myevic__ void ShowMainView()
 			}
 			else
 			{
-				DrawValue( 10, 110, FireDuration, 1, 41, 2 );
+				DrawValue( 10, 110, FireDuration, 1, 0x29, 2 );
 				DrawImage( 40, 110, 0xB7 );
 			}
 		}
@@ -662,6 +675,8 @@ __myevic__ void ShowMainView()
 		DrawHLine( 0, 107, 63, 1 );
 
 		ShowBattery();
+
+		int h = ( dfStatus.nologo || HideLogo ) ? 0 : GetLogoHeight();
 
 		if ( Screen == 2 || EditModeTimer )
 		{
@@ -685,24 +700,29 @@ __myevic__ void ShowMainView()
 					DrawClock( 54 );
 				}
 			}
+			else if ( ( h > 0 ) && dfStatus.logomid )
+			{
+				DrawLOGO( 0, ( 63 - h ) / 2 + 44 );
+			}
 			else
 			{
 				DrawInfoLines();
 			}
 		}
 
-		if (( Screen == 1 ) && ( !HideLogo ))
+		if (( Screen == 1 ) && ( h > 0 ) && !dfStatus.logomid )
 		{
-			int h = GetLogoHeight();
-
-			if ( h > 0 )
+			if ( h > 43 )
 			{
-				if ( h > 40 )
+				DrawHLine( 0, 43, 63, 0 );
+
+				if ( h > 50 )
 				{
-					DrawFillRect( 0, 48, 63, h, 0 );
+					DrawFillRect( 0, 52, 63, 70, 0 );
 				}
-				DrawLOGO( 0, dfStatus.logomid ? 46 : 0 );
 			}
+
+			DrawLOGO( 0, 0 );
 		}
 	}
 
@@ -730,7 +750,7 @@ __myevic__ void DrawClock( int line )
 
 	int c = line + 32;
 
-	DrawImage( 0, line, 0x104 );
+	DrawImage( 0, line, 0xFE );
 	DrawCircle( 32, c, 3, 1, 1 );
 
 	int32_t h = ( rtd.u32Hour % 12 ) * 30 + ( rtd.u32Minute >> 1 );

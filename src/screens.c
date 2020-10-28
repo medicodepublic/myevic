@@ -49,12 +49,14 @@ __myevic__ void DrawScreen()
 	if ( Screen == 2 && FireDuration && FireDuration != CurrentFD )
 	{
 		CurrentFD = FireDuration;
-		ScreenDuration = ISMODETC(dfMode) ? 1 : 2;
+		ScreenDuration = ISMODETC(dfMode) ? 1 : 3;
 		TenthOfSecs = 0;
 		gFlags.refresh_display = 1;
 	}
 	else if ( ScreenRefreshTimer && !--ScreenRefreshTimer )
+	{
 		gFlags.refresh_display = 1;
+	}
 
 	if ( gFlags.refresh_display )
 	{
@@ -190,7 +192,7 @@ __myevic__ void DrawScreen()
 			case 107:
 				ShowPowerCurve();
 				break;
-
+			
 			default:
 				break;
 		}
@@ -203,19 +205,6 @@ __myevic__ void DrawScreen()
 
 		DisplayRefresh();
 	}
-
-	if (( gFlags.firing ) && ISMODETC(dfMode))
-		TenthOfSecs += 5;
-	else
-		TenthOfSecs += 1;
-
-	if ( TenthOfSecs < 10 )
-		return;
-
-	TenthOfSecs = 0;
-
-	if (  100 * ScreenDuration < EditModeTimer )
-		ScreenDuration = EditModeTimer / 100 + 1;
 
 	if ( ( Screen == 1 || Screen == 60 ) && ( ScreenDuration <= 4 ) )
 	{
@@ -231,6 +220,19 @@ __myevic__ void DrawScreen()
 		DisplaySetContrast( dfContrast );
 		gFlags.fading = 0;
 	}
+
+	if (( gFlags.firing ) && ISMODETC(dfMode))
+		TenthOfSecs += 5;
+	else
+		TenthOfSecs += 1;
+
+	if ( TenthOfSecs < 10 )
+		return;
+
+	TenthOfSecs = 0;
+
+	if (  100 * ScreenDuration < EditModeTimer )
+		ScreenDuration = EditModeTimer / 100 + 1;
 
 	if ( ScreenDuration && --ScreenDuration )
 		return;
@@ -383,7 +385,7 @@ __myevic__ uint16_t GetMainScreenDuration()
 
 //=========================================================================
 
-__myevic__ int convert_string1( uint16_t *strbuf, const char *s )
+__myevic__ int convert_string1( uint8_t *strbuf, const char *s )
 {
 	int i;
 	char c;
@@ -427,7 +429,7 @@ __myevic__ void ChargeView()
 
 __myevic__ void ShowInfos()
 {
-	uint16_t strbuf[20];
+	uint8_t strbuf[20];
 
 	// TODO : infos page
 	convert_string1( strbuf, "Ferox" );
@@ -509,7 +511,7 @@ __myevic__ int IsClockOnScreen()
 {
 	return (  ((( Screen == 1 ) || ( Screen == 2 )) && ( dfAPT == 8 ))
 			|| (( Screen == 1 ) && ( dfStatus.clock ))
-			|| (( Screen == 60 ) && ( dfScreenSaver == 1 ))
+			|| (( Screen == 60 ) && ( dfScreenSaver == SSAVER_CLOCK ))
 			||  ( Screen == 103 )
 			||  ( Screen == 104 )
 			);
@@ -520,6 +522,8 @@ __myevic__ int IsClockOnScreen()
 //----- (000067C8) --------------------------------------------------------
 __myevic__ void ShowBattery()
 {
+	if ( BLINKITEM(5) ) return;
+
 	if ( dfStatus.battpc )
 	{
 		if ( dfStatus.battv )
@@ -601,8 +605,8 @@ __myevic__ void ShowBatCharging()
 
 	switch ( dfScreenSaver )
 	{
-		case 1:
-		case 3:
+		case SSAVER_CLOCK:
+		case SSAVER_LOGO:
 			ShowScreenSaver();
 			break;
 
@@ -647,7 +651,7 @@ __myevic__ void ShowBatCharging()
 		}
 	}
 
-	if (( dfScreenSaver == 1 ) || ( dfScreenSaver == 3 ))
+	if (( dfScreenSaver == SSAVER_CLOCK ) || ( dfScreenSaver == SSAVER_LOGO ))
 	{
 		DrawValue(  6, 104, BatteryVoltage, 2, 0x0B, 3 );
 		DrawImage( 27, 104, 0x7D );
@@ -674,11 +678,11 @@ __myevic__ void ShowBattVolts()
 {
 	if ( NumBatteries > 1 )
 	{
-		DrawStringCentered( String_Batteries, 52 );
+		DrawStringCentered( String_Batteries, 32 );
 		for ( int i = 0 ; i < NumBatteries ; ++i )
 		{
-			DrawValue(  6, 64+20*i, BattVolts[i], 2, 0x29, 3 );
-			DrawImage( 46, 64+20*i, 0xB8 );
+			DrawValue(  6, 44+20*i, BattVolts[i], 2, 0x29, 3 );
+			DrawImage( 46, 44+20*i, 0xB8 );
 		}
 	}
 	else
@@ -703,7 +707,7 @@ __myevic__ void ShowBoardTemp()
 //----- (00007684) --------------------------------------------------------
 __myevic__ void ShowVersion()
 {
-	uint16_t buf[12];
+	uint8_t buf[12];
 
 	DrawStringCentered( String_myevic, 32 );
 
@@ -746,7 +750,7 @@ __myevic__ void ShowNewCoil()
 		{
 			rez = dfRezTCR;
 		}
-		DrawValue( 16, 102, rez, 2, 11, 3 );
+		DrawValue( 16, 102, rez, 2, 0x0B, 3 );
 	}
 
 	DrawImage( 40, 102, 0xC0 );
@@ -907,6 +911,10 @@ __myevic__ void ShowScreenSaver()
 			Snow( 1 );
 			break;
 
+		case SSAVER_SPLASH:
+			DrawImage( 0, 0, 0xFF );
+			break;
+
 		default:
 			break;
 	}
@@ -1021,22 +1029,91 @@ __myevic__ void ShowPowerCurve()
 	DrawVLine( 10,  27, 126, 1 );
 	DrawVLine( 60,  27, 126, 1 );
 
-	for ( int i = 0; i < 20; ++i )
+	int t = EditItemIndex * 5;
+	int j = -1;
+
+	for ( int i = 0; i < PWR_CURVE_PTS; ++i )
 	{
-		DrawFillRect( 10, 27+i*5, 10+dfPwrCurve[i]/4, 31+i*5, 1 );
+		int t1, t2;
+
+		t1 = dfPwrCurve[i].time;
+
+		if ( ( i > 0 ) && ( t1 == 0 ) )
+			break;
+
+		if ( i < PWR_CURVE_PTS - 1 )
+		{
+			t2 = dfPwrCurve[i+1].time;
+
+			if ( t2 == 0 ) t2 = 250;
+		}
+		else
+		{
+			t2 = 250;
+		}
+
+		DrawVLine(	10 + dfPwrCurve[i].power / 4,
+					27 + 2 * t1 / 5,
+					27 + 2 * t2 / 5,
+					1 );
+
+		if (( t2 > t ) && ( j < 0 ))
+		{
+			j = i;
+
+			if ( t == t1 )
+			{
+				DrawFillRect(	10,
+								27 + 2 * t1 / 5,
+								10 + dfPwrCurve[i].power / 4,
+								28 + 2 * t1 / 5,
+								1 );
+			}
+		}
 	}
 
 	if ( !gFlags.edit_value || gFlags.draw_edited_item )
 	{
-		DrawImage( 6, 25+EditItemIndex*5, 0xD4 );
+		DrawImage( 6, 23 + EditItemIndex * 2 , 0xD4 );
 	}
 
 	DrawImage( 12, 3, 0xAF );
-	DrawValueRight( 40, 3, EditItemIndex*5, 1, 0x0B, 2 );
-	DrawImage( 42, 3, 0x94 );
+	DrawValueRight( 44, 3, t, 1, 0x0B, 0 );
+	DrawImage( 46, 3, 0x94 );
 
 	DrawImage( 12, 13, 0xAB );
-	DrawValueRight( 40, 13, dfPwrCurve[EditItemIndex], 0, 0x0B, 0 );
-	DrawImage( 42, 13, 0xC2 );
+	DrawValueRight( 44, 13, dfPwrCurve[j].power, 0, 0x0B, 0 );
+	DrawImage( 46, 13, 0xC2 );
 }
 
+
+//=========================================================================
+__myevic__ int SplashExists()
+{
+	int i, h, l;
+	const image_t *img = Images[0xFF-1];
+
+	h = img->height;
+	l = img->width * h / 8;
+	
+	if ( img->width != 64 ) return 0;
+
+	for ( i = 0 ; i < l ; ++i )
+		if ( img->bitmap[i] ) break;
+
+	return ( ( l && i < l ) ? 1 : 0 );
+}
+
+
+__myevic__ void ShowSplash()
+{
+	if ( gFlags.splash )
+	{
+		DrawImage( 0, 0, 0xFF );
+		ScreenDuration = 3;
+	}
+	else
+	{
+		MainView();
+	}
+}

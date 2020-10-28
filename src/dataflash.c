@@ -40,7 +40,8 @@ uint16_t	fmcCntrsIndex;
 	__attribute__((section (".productid")))
 
 const char pid_vtcmini	[8]	__PIDATTR__	= { 'E','0','5','2', 1, 1, 1, 0 };
-const char pid_vtwomini	[8]	__PIDATTR__	= { 'E','1','1','5', 1, 0, 0, 0 };
+const char pid_vtwomini	[8]	__PIDATTR__	= { 'E','1','1','5', 1, 0, 1, 0 };
+const char pid_primomini[8]	__PIDATTR__	= { 'E','1','9','6', 1, 0, 0, 0 };
 const char pid_vtwo		[8]	__PIDATTR__	= { 'E','0','4','3', 1, 0, 1, 0 };
 const char pid_evicaio	[8]	__PIDATTR__	= { 'E','0','9','2', 1, 0, 1, 0 };
 const char pid_egripii	[8]	__PIDATTR__	= { 'E','0','8','3', 1, 0, 0, 0 };
@@ -51,16 +52,25 @@ const char pid_presa100w[8]	__PIDATTR__	= { 'W','0','1','7', 1, 0, 0, 0 };
 const char pid_wrx75tc	[8]	__PIDATTR__	= { 'W','0','2','6', 1, 0, 3, 0 };
 const char pid_vtcdual	[8]	__PIDATTR__	= { 'E','0','7','9', 1, 0, 1, 0 };
 const char pid_cuboid	[8]	__PIDATTR__	= { 'E','0','6','0', 1, 0, 2, 0 };
+const char pid_cubo200	[8]	__PIDATTR__	= { 'E','1','6','6', 1, 0, 0, 0 };
 const char pid_rx200s	[8]	__PIDATTR__	= { 'W','0','3','3', 1, 0, 0, 0 };
-const char pid_rx23		[8]	__PIDATTR__	= { 'W','0','1','8', 1, 0, 1, 0 };
+const char pid_rx23		[8]	__PIDATTR__	= { 'W','0','1','8', 1, 0, 2, 0 };
+const char pid_rx300	[8]	__PIDATTR__	= { 'W','0','6','9', 1, 0, 0, 0 };
+const char pid_rxmini	[8]	__PIDATTR__	= { 'W','0','7','3', 1, 0, 0, 0 };
+const char pid_lpb		[8]	__PIDATTR__	= { 'W','0','4','3', 1, 0, 0, 0 };
+const char pid_primo1   [8]	__PIDATTR__	= { 'E','1','8','2', 1, 0, 1, 0 };
+const char pid_primo2   [8]	__PIDATTR__	= { 'E','2','0','3', 1, 0, 1, 0 };
+const char pid_predator [8]	__PIDATTR__	= { 'W','0','7','8', 1, 0, 0, 0 };
 
-#define MAKEPID(p) (((p)[0])|((p)[1]<<8)|((p)[2]<<16)|((p)[3]<<24))
+#define PID_SCRAMBLE 0x12345678UL
+#define MAKEPID(p) ((((p)[0])|((p)[1]<<8)|((p)[2]<<16)|((p)[3]<<24))^PID_SCRAMBLE)
 #define MAKEHWV(p) (((p)[4])|((p)[5]<<8)|((p)[6]<<16)|((p)[7]<<24))
 
 #define HWV2INT(v) (((v)&0xff)*100+(((v)>>8)&0xff)*10+(((v)>>16)&0xff))
 
 #define PID_VTCMINI		MAKEPID(pid_vtcmini)
 #define PID_VTWOMINI	MAKEPID(pid_vtwomini)
+#define PID_PRIMOMINI	MAKEPID(pid_primomini)
 #define PID_VTWO		MAKEPID(pid_vtwo)
 #define PID_EVICAIO		MAKEPID(pid_evicaio)
 #define PID_EGRIPII		MAKEPID(pid_egripii)
@@ -71,11 +81,19 @@ const char pid_rx23		[8]	__PIDATTR__	= { 'W','0','1','8', 1, 0, 1, 0 };
 #define PID_WRX75TC		MAKEPID(pid_wrx75tc)
 #define PID_VTCDUAL		MAKEPID(pid_vtcdual)
 #define PID_CUBOID		MAKEPID(pid_cuboid)
+#define PID_CUBO200		MAKEPID(pid_cubo200)
 #define PID_RX200S		MAKEPID(pid_rx200s)
 #define PID_RX23		MAKEPID(pid_rx23)
+#define PID_RX300		MAKEPID(pid_rx300)
+#define PID_RXMINI		MAKEPID(pid_rxmini)
+#define PID_LPB			MAKEPID(pid_lpb)
+#define PID_PRIMO1		MAKEPID(pid_primo1)
+#define PID_PRIMO2		MAKEPID(pid_primo2)
+#define PID_PREDATOR	MAKEPID(pid_predator)
 
 #define HWV_VTCMINI		MAKEHWV(pid_vtcmini)
 #define HWV_VTWOMINI	MAKEHWV(pid_vtwomini)
+#define HWV_PRIMOMINI	MAKEHWV(pid_primomini)
 #define HWV_VTWO		MAKEHWV(pid_vtwo)
 #define HWV_EVICAIO		MAKEHWV(pid_evicaio)
 #define HWV_EGRIPII		MAKEHWV(pid_egripii)
@@ -86,8 +104,15 @@ const char pid_rx23		[8]	__PIDATTR__	= { 'W','0','1','8', 1, 0, 1, 0 };
 #define HWV_WRX75TC		MAKEHWV(pid_wrx75tc)
 #define HWV_VTCDUAL		MAKEHWV(pid_vtcdual)
 #define HWV_CUBOID		MAKEHWV(pid_cuboid)
+#define HWV_CUBO200		MAKEHWV(pid_cubo200)
 #define HWV_RX200S		MAKEHWV(pid_rx200s)
 #define HWV_RX23		MAKEHWV(pid_rx23)
+#define HWV_RX300		MAKEHWV(pid_rx300)
+#define HWV_RXMINI		MAKEHWV(pid_rxmini)
+#define HWV_LPB			MAKEHWV(pid_lpb)
+#define HWV_PRIMO1		MAKEHWV(pid_primo1)
+#define HWV_PRIMO2		MAKEHWV(pid_primo2)
+#define HWV_PREDATOR	MAKEHWV(pid_predator)
 
 
 //=========================================================================
@@ -125,6 +150,7 @@ __myevic__ void SetProductID()
 	for ( offset = 0 ; offset < LDROM_SIZE ; offset += 4 )
 	{
 		u32Data = FMC_Read( LDROM_BASE + offset );
+		u32Data ^= PID_SCRAMBLE;
 
 		if ( u32Data == PID_VTCMINI )
 		{
@@ -141,6 +167,13 @@ __myevic__ void SetProductID()
 			BoxModel = BOX_VTWOMINI;
 			break;
 		}
+		else if ( u32Data == PID_PRIMOMINI )
+		{
+			dfMaxHWVersion = HWV_PRIMOMINI;
+			DFMagicNumber = 0x11;
+			BoxModel = BOX_PRIMOMINI;
+			break;
+		}
 		else if ( u32Data == PID_VTWO )
 		{
 			dfMaxHWVersion = HWV_VTWO;
@@ -155,6 +188,39 @@ __myevic__ void SetProductID()
 			BoxModel = BOX_VTCDUAL;
 			NumBatteries = 0;
 			MaxBatteries = 2;
+			gFlags.pwm_pll = 1;
+			break;
+		}
+		else if ( u32Data == PID_PRIMO1 )
+		{
+			dfMaxHWVersion = HWV_PRIMO1;
+			DFMagicNumber = 0x11;
+			BoxModel = BOX_PRIMO1;
+			NumBatteries = 2;
+			MaxBatteries = 2;
+			MaxCurrent = 50;
+			gFlags.pwm_pll = 1;
+			break;
+		}
+		else if ( u32Data == PID_PRIMO2 )
+		{
+			dfMaxHWVersion = HWV_PRIMO2;
+			DFMagicNumber = 0x10;
+			BoxModel = BOX_PRIMO2;
+			NumBatteries = 2;
+			MaxBatteries = 2;
+			MaxCurrent = 50;
+			gFlags.pwm_pll = 1;
+			break;
+		}
+		else if ( u32Data == PID_PREDATOR )
+		{
+			dfMaxHWVersion = HWV_PREDATOR;
+			DFMagicNumber = 0x11;
+			BoxModel = BOX_PREDATOR;
+			NumBatteries = 2;
+			MaxBatteries = 2;
+			MaxCurrent = 50;
 			gFlags.pwm_pll = 1;
 			break;
 		}
@@ -194,6 +260,18 @@ __myevic__ void SetProductID()
 			X32Off = 1;
 			break;
 		}
+		else if ( u32Data == PID_CUBO200 )
+		{
+			dfMaxHWVersion = HWV_CUBO200;
+			DFMagicNumber = 0x10;
+			BoxModel = BOX_CUBO200;
+			NumBatteries = 3;
+			MaxBatteries = 3;
+			MaxCurrent = 50;
+			gFlags.pwm_pll = 1;
+			X32Off = 1;
+			break;
+		}
 		else if ( u32Data == PID_EVICBASIC )
 		{
 			dfMaxHWVersion = HWV_EVICBASIC;
@@ -226,6 +304,22 @@ __myevic__ void SetProductID()
 			X32Off = 1;
 			break;
 		}
+		else if ( u32Data == PID_RXMINI )
+		{
+			dfMaxHWVersion = HWV_RXMINI;
+			DFMagicNumber = 0x10;
+			BoxModel = BOX_RXMINI;
+			X32Off = 1;
+			break;
+		}
+		else if ( u32Data == PID_LPB )
+		{
+			dfMaxHWVersion = HWV_LPB;
+			DFMagicNumber = 0x31;
+			BoxModel = BOX_PRESA75W;	// Act as Presa 75W
+			X32Off = 1;
+			break;
+		}
 		else if ( u32Data == PID_RX200S )
 		{
 			dfMaxHWVersion = HWV_RX200S;
@@ -250,6 +344,18 @@ __myevic__ void SetProductID()
 			X32Off = 1;
 			break;
 		}
+		else if ( u32Data == PID_RX300 )
+		{
+			dfMaxHWVersion = HWV_RX300;
+			DFMagicNumber = 0x12;
+			BoxModel = BOX_RX300;
+			NumBatteries = 4;
+			MaxBatteries = 4;
+			MaxCurrent = 50;
+			gFlags.pwm_pll = 1;
+			X32Off = 1;
+			break;
+		}
 	}
 
 	FMC_DISABLE_ISP();
@@ -257,7 +363,7 @@ __myevic__ void SetProductID()
 
 	if ( offset < LDROM_SIZE )
 	{
-		dfProductID = u32Data;
+		dfProductID = u32Data ^ PID_SCRAMBLE;
 
 	//	What's the right behavior in case of bad
 	//	hardware version?
@@ -335,7 +441,11 @@ __myevic__ void UpdatePTCounters()
 //=========================================================================
 __myevic__ void ResetPowerCurve()
 {
-	MemSet( dfPwrCurve, 100, sizeof(dfPwrCurve) );
+	for ( int i = 0 ; i < PWR_CURVE_PTS ; ++i )
+	{
+		dfPwrCurve[i].time = 0;
+		dfPwrCurve[i].power = 100;
+	}
 }
 
 
@@ -401,7 +511,7 @@ __myevic__ void ResetDataFlash()
 	dfTCRM[0] = 100;
 	dfTCRM[1] = 110;
 	dfTCRM[2] = 120;
-	dfScreenSaver = 1;
+	dfScreenSaver = SSAVER_CLOCK;
 //	dfTCMode = 0;
 //	dfScreenProt = 0;
 //	MemClear( dfSavedCfgRez, sizeof(dfSavedCfgRez) );
@@ -525,9 +635,14 @@ __myevic__ void DFCheckValuesValidity()
 			ResetCustomBattery();
 		}
 
-		for ( i = 0 ; i < sizeof(dfPwrCurve) ; ++i )
+		for ( i = 0 ; i < PWR_CURVE_PTS ; ++i )
 		{
-			if ( dfPwrCurve[i] > 200 )
+			if ( i > 0 && dfPwrCurve[i].time == 0 )
+				break;
+
+			if (( dfPwrCurve[i].time > 250 || dfPwrCurve[i].power > 200 )
+			||	( i == 0 && dfPwrCurve[i].time != 0 )
+			||	( i != 0 && dfPwrCurve[i].time <= dfPwrCurve[i-1].time ))
 			{
 				ResetPowerCurve();
 				break;
@@ -628,10 +743,6 @@ __myevic__ void DFCheckValuesValidity()
 	if (( dfBatteryModel >= GetNBatteries() ) && ( dfBatteryModel != BATTERY_CUSTOM ))
 		dfBatteryModel = 0;
 
-	for ( i = 0 ; i < 3 ; ++i )
-		if ( dfBVOffset[i] < BVO_MIN || dfBVOffset[i] > BVO_MAX )
-			dfBVOffset[i] = 0;
-
 	if ( dfStatus.phpct )
 	{
 		if (( dfPreheatPwr < 50 ) || ( dfPreheatPwr > 300 ))
@@ -642,6 +753,8 @@ __myevic__ void DFCheckValuesValidity()
 		if ( dfPreheatPwr > MaxPower )
 			dfPreheatPwr = dfPower;
 	}
+
+	MemSet( DataFlash.p.UnusedCA, 0, sizeof(DataFlash.p.UnusedCA) );
 
 	if ( dfPreheatTime > 200 )
 		dfPreheatTime = 0;
@@ -664,6 +777,11 @@ __myevic__ void DFCheckValuesValidity()
 		dfPID.I = PID_I_DEF;
 		dfPID.D = PID_D_DEF;
 	}
+
+	for ( i = 0 ; i < 4 ; ++i )
+	if ( dfBVOffset[i] < BVO_MIN || dfBVOffset[i] > BVO_MAX )
+		dfBVOffset[i] = 0;
+
 }
 
 
@@ -809,6 +927,8 @@ __myevic__ void UpdateDataFlash()
 //	dfAtoRez = AtoRez;
 //	dfAtoStatus = AtoStatus;
 
+	UpdateDFTimer = 0;
+
 	df = (uint8_t*)&DataFlash.params;
 
 	for ( idx = 0 ; idx < DATAFLASH_PARAMS_SIZE ; ++idx )
@@ -829,9 +949,6 @@ __myevic__ void UpdateDataFlash()
 	}
 }
 
-//=========================================================================
-
-const uint32_t GCUID[3] = { 0x000F00EF, 0xFF25C498, 0x00002574 };
 
 //=========================================================================
 //----- (00001940) --------------------------------------------------------
@@ -946,13 +1063,6 @@ __myevic__ void InitDataFlash()
 				break;
 			default:
 				DisplayModel = 0;
-
-				for ( i = 0 ; i < 3 ; ++i )
-				{
-					if ( dffmcUID[i] != GCUID[i] )
-						break;
-				}
-				if ( i == 3 ) gFlags.scr_noinv=1;
 				break;
 		}
 	}
@@ -982,13 +1092,20 @@ __myevic__ void InitDataFlash()
 
 	dfFWVersion	= FWVERSION;
 
-	MaxVolts = 900;
+	if ( ISRX300 )
+	{
+		MaxVolts = 990;
+	}
+	else
+	{
+		MaxVolts = 900;
+	}
 
 	if ( ISEVICBASIC )
 	{
 		MaxPower = 600;
 	}
-	else if ( ISVTWO || ISEGRIPII || ISCUBOMINI )
+	else if ( ISPRIMOMINI || ISVTWO || ISEGRIPII || ISCUBOMINI || ISRXMINI )
 	{
 		MaxPower = 800;
 	}
@@ -1001,13 +1118,21 @@ __myevic__ void InitDataFlash()
 		MaxPower = 1500;
 		gFlags.batt_unk = 1;
 	}
-	else if ( ISCUBOID )
+	else if ( ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
+	{
+		MaxPower = 2500; //2280
+	}
+	else if ( ISCUBOID || ISCUBO200 )
 	{
 		MaxPower = 2000;
 	}
 	else if ( ISRX200S || ISRX23 )
 	{
 		MaxPower = 2500;
+	}
+	else if ( ISRX300 )
+	{
+		MaxPower = 3000;
 	}
 	else
 	{
@@ -1108,15 +1233,22 @@ __myevic__ int FMCEraseWritePage( uint32_t u32Addr, uint32_t *src )
 //----- (00002030) --------------------------------------------------------
 __myevic__ void DataFlashUpdateTick()
 {
-	if ( UpdateDFTimer )
+	if ( gFlags.firing )
 	{
-		if ( !--UpdateDFTimer )
-		UpdateDataFlash();
+		UpdateDFTimer = 50;
 	}
-	if ( UpdatePTTimer )
+	else
 	{
-		if ( !--UpdatePTTimer )
-		UpdatePTCounters();
+		if ( UpdateDFTimer )
+		{
+			if ( !--UpdateDFTimer )
+			UpdateDataFlash();
+		}
+		if ( UpdatePTTimer )
+		{
+			if ( !--UpdatePTTimer )
+			UpdatePTCounters();
+		}
 	}
 }
 
@@ -1128,7 +1260,7 @@ __myevic__ uint16_t GetShuntRezValue()
 {
 	uint16_t rez;
 
-	if ( ISPRESA75W || ISEVICAIO )
+	if ( ISPRESA75W || ISEVICAIO || ISRXMINI || ISPREDATOR )
 	{
 		rez = 100;
 	}
@@ -1136,9 +1268,27 @@ __myevic__ uint16_t GetShuntRezValue()
 	{
 		rez = 92;
 	}
-	else if ( ISVTWOMINI || ISVTWO )
+	else if ( ISVTWO || ISCUBO200 )
 	{
 		rez = 115;
+	}
+	else if ( ISVTWOMINI )
+	{
+		switch ( dfHWVersion )
+		{
+			case 100:
+			default:
+				rez = 115;
+				break;
+
+			case 101:
+				rez = 119;
+				break;
+		}
+	}
+	else if ( ISPRIMOMINI )
+	{
+		rez = 109;
 	}
 	else if ( ISEGRIPII || ISEVICBASIC )
 	{
@@ -1191,6 +1341,34 @@ __myevic__ uint16_t GetShuntRezValue()
 				break;
 		}
 	}
+	else if ( ISPRIMO1 )
+	{
+		switch ( dfHWVersion )
+		{
+			case 100:
+			default:
+				rez = 108;
+				break;
+
+			case 101:
+				rez = 111;
+				break;
+		}
+	}
+	else if ( ISPRIMO2 )
+	{
+		switch ( dfHWVersion )
+		{
+			case 100:
+			default:
+				rez = 110;
+				break;
+
+			case 101:
+				rez = 111;
+				break;
+		}
+	}
 	else if ( ISRX23 )
 	{
 		switch ( dfHWVersion )
@@ -1208,6 +1386,10 @@ __myevic__ uint16_t GetShuntRezValue()
 	else if ( ISRX200S )
 	{
 		rez = 110;
+	}
+	else if ( ISRX300 )
+	{
+		rez = 106;
 	}
 	else
 	{
@@ -1270,7 +1452,7 @@ const uint8_t ProfileFilter[32] =
 /* 0060 */	0b00000000,
 /* 0068 */	0b00000000,
 /* 0070 */	0b00000011,
-/* 0078 */	0b00000000,
+/* 0078 */	0b11110000,
 /* 0080 */	0b11101011,
 /* 0088 */	0b11111110,
 /* 0090 */	0b10000000,
@@ -1288,6 +1470,11 @@ const uint8_t ProfileFilter[32] =
 /* 00F0 */	0b00000000,
 /* 00F8 */	0b00000000
 };
+
+// Saved status bits
+// - Power curve enable state
+const uint32_t StatusFilter = 0b00010000000000000000000000000000;
+
 
 //-------------------------------------------------------------------------
 // Apply newly reloaded parameters
@@ -1324,9 +1511,17 @@ __myevic__ void LoadProfile( int p )
 		s = (uint8_t*)params;
 		d = (uint8_t*)DataFlash.params;
 
+		uint32_t new_status = *(uint32_t*)&s[offsetof(dfParams_t,Status)];
+		uint32_t old_status = *(uint32_t*)&d[offsetof(dfParams_t,Status)];
+
+		new_status &= StatusFilter;
+		old_status &= ~StatusFilter;
+
 		for ( idx = 0 ; idx < DATAFLASH_PARAMS_SIZE ; ++idx )
 			if ( ProfileFilter[idx/8] & ( 0x80 >> ( idx & 7 ) ) )
 				d[idx] = s[idx];
+
+		*(uint32_t*)&d[offsetof(dfParams_t,Status)] = old_status | new_status;
 
 		DFCheckValuesValidity();
 		ApplyParameters();
@@ -1383,4 +1578,52 @@ __myevic__ void SaveProfile()
 		FMC_DISABLE_ISP();
 		SYS_LockReg();
 	}
+}
+
+//-------------------------------------------------------------------------
+// Erase a profile
+//-------------------------------------------------------------------------
+__myevic__ void EraseProfile( int p )
+{
+	uint32_t offset;
+
+	uint8_t page[FMC_FLASH_PAGE_SIZE] __attribute__((aligned(4)));
+
+	offset = p * DATAFLASH_PARAMS_SIZE;
+
+	MemCpy( page, (void*)DATAFLASH_PROFILES_BASE, FMC_FLASH_PAGE_SIZE );
+	MemSet( page + offset, 0xFF, DATAFLASH_PARAMS_SIZE );
+
+	SYS_UnlockReg();
+	FMC_ENABLE_ISP();
+	FMC_ENABLE_AP_UPDATE();
+
+	FMCEraseWritePage( DATAFLASH_PROFILES_BASE, (uint32_t*)page );
+
+	FMC_DISABLE_AP_UPDATE();
+	FMC_DISABLE_ISP();
+	SYS_LockReg();
+}
+
+//-------------------------------------------------------------------------
+// Test a given profile
+//-------------------------------------------------------------------------
+__myevic__ int IsProfileValid( int p )
+{
+	uint32_t addr;
+	dfParams_t *params;
+
+	if ( p >= DATAFLASH_PROFILES_MAX )
+		return 0;
+
+	addr = DATAFLASH_PROFILES_BASE + p * DATAFLASH_PARAMS_SIZE;
+
+	params = (dfParams_t*)addr;
+
+	if (( params->Magic == DFMagicNumber ) && ( params->PCRC == CalcPageCRC( (uint32_t*)params ) ))
+	{
+		return 1;
+	}
+	
+	return 0;
 }

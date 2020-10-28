@@ -5,8 +5,8 @@
 
 #define BBC_PWMCH_CHARGER	5
 
-#define BVO_MIN -30
-#define BVO_MAX  30
+#define BVO_MIN -100
+#define BVO_MAX  100
 
 #define BATTERY_CUSTOM	255
 
@@ -21,7 +21,7 @@ BatV2P_t;
 
 typedef struct
 {
-	const uint16_t	*name;
+	const uint8_t	*name;
 	BatV2P_t	V2P[11];
 	uint16_t	cutoff;
 	uint16_t	intrez;
@@ -32,12 +32,13 @@ Battery_t;
 //-------------------------------------------------------------------------
 
 extern uint16_t RTBattVolts;
+extern uint16_t	RTBVolts[4];
 extern uint16_t	RTBVTotal;
 extern uint16_t LowBatVolts;
 extern uint32_t	PowerScale;
 extern uint16_t	BatteryVoltage;
 extern uint16_t	BattVoltsTotal;
-extern uint16_t	BattVolts[3];
+extern uint16_t	BattVolts[4];
 extern uint16_t	BatteryCutOff;
 extern uint16_t	BatteryIntRez;
 extern uint16_t	BatteryMaxPwr;
@@ -50,12 +51,16 @@ extern uint8_t	NumBatteries;
 extern uint8_t	MaxBatteries;
 extern uint16_t	ChargerDuty;
 extern uint16_t	MaxChargerDuty;
+extern uint16_t	ChBalTimer;
 
 extern uint8_t	BattProbeCount;
 
-extern uint8_t	byte_20000055;
+extern uint8_t	USBMaxLoad;
 extern uint8_t	ChargeStatus;
 extern uint8_t	BatteryStatus;
+extern uint8_t	BBBits;
+extern uint8_t	ChargeMode;
+extern uint8_t	ChargeStep;
 
 extern Battery_t CustomBattery;
 
@@ -67,7 +72,7 @@ extern void NewBatteryVoltage();
 extern int CheckBattery();
 extern int GetNBatteries();
 extern void SetBatteryModel();
-extern const uint16_t *GetBatteryName();
+extern const uint8_t *GetBatteryName();
 extern void ReadInternalResistance();
 extern void SetBatMaxPower();
 extern void BatteryChargeDual();

@@ -191,6 +191,8 @@ void InitDevices()
 
 	// Enable battery voltage sampling by ADC
 	SYS->IVSCTL |= SYS_IVSCTL_VBATUGEN_Msk;
+
+	// ADC reference voltage
 	SYS->VREFCTL = SYS_VREFCTL_VREF_2_56V;
 
 	// Brown-out detector; interrupts under 2.2V
@@ -308,6 +310,7 @@ __myevic__ void InitVariables()
 	gFlags.read_battery = 1;
 	gFlags.read_bir = 1;
 	WattsInc = dfStatus.onewatt ? 10 : 1;
+	RoundPowers();
 	AtoMinVolts = 50;
 	AtoMaxVolts = MaxVolts;
 	AtoMinPower = 10;
@@ -391,12 +394,12 @@ __myevic__ void DevicesOnOff( int off )
 		SetADCState( 2, 0 );
 		SetADCState( 14, 0 );
 
-		if ( ISVTCDUAL || ISCUBOID || ISRX200S || ISRX23 )
+		if ( ISVTCDUAL || ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 || ISRX300 || ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
 		{
 			SetADCState( 3, 0 );
 			SetADCState( 13, 0 );
 
-			if ( ISRX200S || ISRX23 )
+			if ( ISCUBO200 || ISRX200S || ISRX23 || ISRX300 )
 			{
 				SetADCState( 15, 0 );
 			}
@@ -405,7 +408,7 @@ __myevic__ void DevicesOnOff( int off )
 			BBC_Configure( BBC_PWMCH_CHARGER, 0 );
 			PD7 = 0;
 
-			if ( ISCUBOID || ISRX200S || ISRX23 )
+			if ( ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 )
 			{
 				PF2 = 0;
 			}
@@ -418,9 +421,13 @@ __myevic__ void DevicesOnOff( int off )
 		PC2 = 0;
 		BBC_Configure( BBC_PWMCH_BOOST, 0 );
 
-		if ( ISRX200S || ISRX23 )
+		if ( ISCUBO200 || ISRX200S || ISRX23 )
 		{
 			PF1 = 0;
+		}
+		else if ( ISRX300 )
+		{
+			PD1 = 0;
 		}
 		else
 		{
@@ -431,13 +438,25 @@ __myevic__ void DevicesOnOff( int off )
 		PD0 = 0;
 		GPIO_SetMode( PD, GPIO_PIN_PIN0_Msk, GPIO_MODE_OUTPUT );
 
+		if ( ISPRIMO1 || ISPRIMO2 || ISPREDATOR || ISRX300 )
+		{
+			PA3 = 0;
+			PA2 = 0;
+
+			if ( ISRX300 )
+			{
+				PF5 = 0;
+				PF6 = 0;
+			}
+		}
+
 		if ( ISVTCDUAL )
 		{
 			GPIO_DisableInt( PD, 1 );
 			PD1 = 0;
 			GPIO_SetMode( PD, GPIO_PIN_PIN1_Msk, GPIO_MODE_OUTPUT );
 		}
-		else if ( !ISCUBOID && !ISRX200S && !ISRX23 )
+		else if ( !ISCUBOID && !ISCUBO200 && !ISRX200S && !ISRX23 && !ISRX300 && !ISPRIMO1 && !ISPRIMO2 && !ISPREDATOR )
 		{
 			GPIO_DisableInt( PD, 7 );
 			PD7 = 0;
@@ -465,14 +484,18 @@ __myevic__ void DevicesOnOff( int off )
 			PF2 = 0;
 			PA2 = 0;
 		}
-		else if ( ISCUBOID || ISRX200S || ISRX23 )
+		else if ( ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 || ISRX300 )
 		{
 			PF0 = 0;
+		}
+		else if ( ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
+		{
+			PD1 = 0;
 		}
 
 		SYS_UnlockReg();
 		SYS->USBPHY &= ~SYS_USBPHY_LDO33EN_Msk;
-		SYS->IVSCTL &= ~SYS_IVSCTL_VBATUGEN_Msk;
+		SYS->IVSCTL &= ~(SYS_IVSCTL_VBATUGEN_Msk|SYS_IVSCTL_VTEMPEN_Msk);
 		SYS_DisableBOD();
 		SYS->VREFCTL = 0;
 		SYS_LockReg();
@@ -487,6 +510,10 @@ __myevic__ void DevicesOnOff( int off )
 		SYS_UnlockReg();
 		SYS->USBPHY |= SYS_USBPHY_LDO33EN_Msk;
 		SYS->IVSCTL |= SYS_IVSCTL_VBATUGEN_Msk;
+		if ( ISRX300 )
+		{
+			SYS->IVSCTL |= SYS_IVSCTL_VTEMPEN_Msk;
+		}
 		SYS->VREFCTL = SYS_VREFCTL_VREF_2_56V;
 		SYS_EnableBOD( SYS_BODCTL_BOD_RST_EN, SYS_BODCTL_BODVL_2_2V );
 		SYS_LockReg();
@@ -495,7 +522,7 @@ __myevic__ void DevicesOnOff( int off )
 		GPIO_DisableInt( PD, 2 );
 		GPIO_DisableInt( PD, 3 );
 
-		if ( ISCUBOID || ISRX200S || ISRX23 )
+		if ( ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 )
 		{
 			PF2 = 1;
 		}
@@ -512,16 +539,20 @@ __myevic__ void DevicesOnOff( int off )
 			GPIO_EnableInt( PD, 1, GPIO_INT_RISING );
 			GPIO_ENABLE_DEBOUNCE( PD, GPIO_PIN_PIN1_Msk );
 		}
-		else if ( !ISCUBOID && !ISRX200S && !ISRX23 )
+		else if ( !ISCUBOID && !ISCUBO200 && !ISRX200S && !ISRX23 && !ISRX300 && !ISPRIMO1 && !ISPRIMO2 && !ISPREDATOR )
 		{
 			GPIO_SetMode( PD, GPIO_PIN_PIN7_Msk, GPIO_MODE_INPUT );
 			GPIO_EnableInt( PD, 7, GPIO_INT_RISING );
 			GPIO_ENABLE_DEBOUNCE( PD, GPIO_PIN_PIN7_Msk );
 		}
 
-		if ( ISRX200S || ISRX23 )
+		if ( ISCUBO200 || ISRX200S || ISRX23 )
 		{
 			PF1 = 1;
+		}
+		else if ( ISRX300 )
+		{
+			PD1 = 1;
 		}
 		else
 		{
@@ -532,12 +563,12 @@ __myevic__ void DevicesOnOff( int off )
 		SetADCState( 2, 1 );
 		SetADCState( 14, 1 );
 
-		if ( ISVTCDUAL || ISCUBOID || ISRX200S || ISRX23 )
+		if ( ISVTCDUAL || ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 || ISRX300 || ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
 		{
 			SetADCState( 3, 1 );
 			SetADCState( 13, 1 );
 
-			if ( ISRX200S || ISRX23 )
+			if ( ISCUBO200 || ISRX200S || ISRX23 || ISRX300 )
 			{
 				SetADCState( 15, 1 );
 			}
@@ -640,6 +671,7 @@ void GoToSleep()
 		SYS_UnlockReg();
 		WDT_Close();
 		FlushAndSleep();
+		PreheatDelay = 0;
 	}
 	WDT_Open( WDT_TIMEOUT_2POW14, WDT_RESET_DELAY_18CLK, TRUE, FALSE );
 	SYS_LockReg();
@@ -762,6 +794,12 @@ __myevic__ void Main()
 
 	InitVariables();
 
+	// Enable chip temp sensor sampling by ADC
+	if ( ISRX300 )
+	{
+		SYS->IVSCTL |= SYS_IVSCTL_VTEMPEN_Msk;
+	}
+
 	InitHardware();
 
 	myprintf( "\n\nJoyetech APROM\n" );
@@ -777,6 +815,7 @@ __myevic__ void Main()
 
 	InitDisplay();
 	MainView();
+	SplashTimer = 3;
 
 	CustomStartup();
 
@@ -883,7 +922,7 @@ __myevic__ void Main()
 			{
 				BatteryChargeDual();
 			}
-			else if ( ISCUBOID || ISRX200S || ISRX23 )
+			else if ( ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 || ISRX300 || ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
 			{
 				BatteryCharge();
 			}
@@ -1054,6 +1093,16 @@ __myevic__ void Main()
 		{
 			// 1Hz
 			gFlags.tick_1hz = 0;
+
+			if ( SplashTimer )
+			{
+				--SplashTimer;
+				
+				if ( !SplashTimer )
+				{
+					MainView();
+				}
+			}
 
 			if ( !gFlags.firing && !dfStatus.off && !EditModeTimer )
 			{

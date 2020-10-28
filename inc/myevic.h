@@ -44,6 +44,7 @@ enum
 {
 	BOX_VTCMINI,
 	BOX_VTWOMINI,
+	BOX_PRIMOMINI,
 	BOX_VTWO,
 	BOX_PRESA75W,
 	BOX_WRX75TC,
@@ -54,12 +55,19 @@ enum
 	BOX_EVICBASIC,
 	BOX_VTCDUAL,
 	BOX_CUBOID,
+	BOX_CUBO200,
 	BOX_RX200S,
-	BOX_RX23
+	BOX_RX23,
+	BOX_RX300,
+	BOX_RXMINI,
+	BOX_PRIMO1,
+	BOX_PRIMO2,
+	BOX_PREDATOR
 };
 
 #define ISVTCMINI		(BoxModel==BOX_VTCMINI)
 #define ISVTWOMINI		(BoxModel==BOX_VTWOMINI)
+#define ISPRIMOMINI		(BoxModel==BOX_PRIMOMINI)
 #define ISVTWO			(BoxModel==BOX_VTWO)
 #define ISPRESA75W		(BoxModel==BOX_PRESA75W)
 #define ISPRESA100W		(BoxModel==BOX_PRESA100W)
@@ -70,8 +78,14 @@ enum
 #define ISEVICBASIC		(BoxModel==BOX_EVICBASIC)
 #define ISVTCDUAL		(BoxModel==BOX_VTCDUAL)
 #define ISCUBOID		(BoxModel==BOX_CUBOID)
+#define ISCUBO200		(BoxModel==BOX_CUBO200)
 #define ISRX200S		(BoxModel==BOX_RX200S)
 #define ISRX23			(BoxModel==BOX_RX23)
+#define ISRX300			(BoxModel==BOX_RX300)
+#define ISRXMINI		(BoxModel==BOX_RXMINI)
+#define ISPRIMO1		(BoxModel==BOX_PRIMO1)
+#define ISPRIMO2		(BoxModel==BOX_PRIMO2)
+#define ISPREDATOR		(BoxModel==BOX_PREDATOR)
 
 
 //=========================================================================
@@ -139,9 +153,9 @@ typedef struct
 /* 00040000 */	int rtcinit:1;
 /* 00080000 */	int light_sleep:1;
 /* 00100000 */	int wake_up:1;
-/* 00200000 */	int scr_noinv:1;
-/* 00400000 */	int fading:1;
-/* 00800000 */	int led_on:1;
+/* 00200000 */	int fading:1;
+/* 00400000 */	int led_on:1;
+/* 00800000 */	int splash:1;
 }
 
 gFlags_t;

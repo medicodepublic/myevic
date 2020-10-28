@@ -8,6 +8,7 @@
 #include "battery.h"
 #include "meusbd.h"
 #include "dtmacros.h"
+#include "screens.h"
 
 void usbdEP2Handler();
 void usbdEP3Handler();
@@ -231,6 +232,14 @@ __myevic__ void USBD_IRQHandler(void)
 		}
 
 		gCtrlSignal = 0;
+	}
+
+	//------------------------------------------------------------------
+	if(u32IntSts & USBD_INTSTS_WAKEUP)
+	{
+		// Wake-Up
+		USBD_CLR_INT_FLAG(USBD_INTSTS_WAKEUP);
+		gFlags.wake_up = 1;
 	}
 
 	//------------------------------------------------------------------
@@ -536,12 +545,23 @@ __myevic__ void InitUSB()
 #define HID_CMD_MONITORING	0x43
 #define HID_CMD_AUTO_PUFF	0x44
 #define HID_CMD_SETPARAMS	0x53
+#define HID_CMD_READCONFIG	0x60
+#define HID_CMD_WRITECONFIG	0x61
+#define HID_CMD_SETDATETIME	0x64
+#define HID_CMD_GETMONDATA	0x66
+#define HID_CMD_GETPROFILE	0x70
+#define HID_CMD_SETPROFILE	0x71
 #define HID_CMD_RESETPARAMS	0x7C
 #define HID_CMD_SETLOGO		0xA5
 #define HID_CMD_RESET		0xB4
 #define HID_CMD_FMCREAD		0xC0
 #define HID_CMD_SCREENSHOT	0xC1
 #define HID_CMD_APUPDATE	0xC3
+
+#define HID_CONFIG_LENGTH	0x400
+#define HID_CONFIG_FORMAT	0x03
+#define HID_PROFILE_LENGTH	(DATAFLASH_PARAMS_SIZE+DATAFLASH_INFOS_SIZE)
+#define HID_PROFILE_FORMAT	0x00
 
 
 typedef struct __attribute__((packed))
@@ -552,14 +572,51 @@ typedef struct __attribute__((packed))
     uint32_t u32Arg2;
     uint32_t u32Signature;
     uint32_t u32Checksum;
-} CMD_T;
+}
+CMD_T;
 
 CMD_T hidCmd;
+
+typedef struct __attribute__((packed))
+{
+	uint32_t	Timestamp; // X * 100 (seconds)
+
+	uint8_t		IsFiring;
+	uint8_t		IsCharging;
+	uint8_t		IsCelsius;
+
+	uint8_t		BatteryVoltage[4]; // Offsetted by 275, 420 - 275 = value
+
+	uint16_t	PowerSet; // X * 10
+	uint16_t	TemperatureSet;
+	uint16_t	Temperature;
+
+	uint16_t	OutputVoltage; // X * 100
+	uint16_t	OutputCurrent; // X * 100
+
+	uint16_t	Resistance; // X * 1000
+	uint16_t	RealResistance;   // X * 1000
+
+	uint8_t		BoardTemperature;
+}
+HIDMonData_t;
+
+typedef struct __attribute__((packed))
+{
+	uint16_t	Year;
+	uint8_t		Month;
+	uint8_t		Day;
+	uint8_t		Hour;
+	uint8_t		Minute;
+	uint8_t		Second;
+}
+HIDDateTime_t;
 
 uint8_t *hidInDataPtr;
 uint8_t hidData[FMC_FLASH_PAGE_SIZE];
 uint32_t hidDFData[FMC_FLASH_PAGE_SIZE/4];
 uint32_t hidDataIndex;
+
 
 //=========================================================================
 //----- (00001204) --------------------------------------------------------
@@ -596,6 +653,7 @@ __myevic__ void hidSetInReport()
 	{
 		case HID_CMD_GETINFO:
 		case HID_CMD_SCREENSHOT:
+		case HID_CMD_GETPROFILE:
 		{
 			if ( hidDataIndex )
 			{
@@ -695,7 +753,7 @@ __myevic__ uint32_t hidResetSysCmd( CMD_T *pCmd )
 	if ( UpdateDFTimer ) UpdateDataFlash();
 	if ( UpdatePTTimer ) UpdatePTCounters();
 
-	if ( ISVTCDUAL || ISCUBOID || ISRX200S || ISRX23 )
+	if ( ISVTCDUAL || ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 || ISRX300 || ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
 	{
 		PD7 = 0;
 		BBC_Configure( BBC_PWMCH_CHARGER, 0 );
@@ -708,7 +766,12 @@ __myevic__ uint32_t hidResetSysCmd( CMD_T *pCmd )
 			PC3 = 0;
 			PA2 = 0;
 		}
-		else if ( ISCUBOID || ISRX200S || ISRX23 )
+		else if ( ISPRIMO1 || ISPRIMO2 || ISPREDATOR )
+		{
+			PD1 = 0;
+		}
+		else	// if ( ISCUBOID || ISCUBO200 || ISRX200S || ISRX23 || ISRX300 )
+				// (currently useless, restore if needed)
 		{
 			PF0 = 0;
 		}
@@ -762,7 +825,7 @@ __myevic__ uint32_t hidGetInfoCmd( CMD_T *pCmd )
 			df->p.ShuntRez = 100;
 			df->p.VVRatio = 200;	// PreheatPwr for NFE
 			df->p.DimTimeout = 30;
-			
+
 			LoadCustomBattery();
 			o = offsetof( dfStruct_t, p ) + 0xCA;	// NFE Custom Battery offset
 			MemCpy( &hidData[o], &CustomBattery.V2P, 48 );
@@ -794,6 +857,143 @@ __myevic__ uint32_t hidSetParamCmd( CMD_T *pCmd )
 {
 	myprintf( "Set Param command - Start Addr: %d    Param Len: %d\n", pCmd->u32Arg1, pCmd->u32Arg2 );
 	hidDataIndex = 0;
+	return 0;
+}
+
+
+//-------------------------------------------------------------------------
+// Read Configuration
+//-------------------------------------------------------------------------
+__myevic__ uint32_t hidGetProfile( CMD_T *pCmd )
+{
+	uint32_t u32ProfileNum;
+
+	myprintf( "Get Profile command - Profile: %d\n", pCmd->u32Arg1 );
+
+	u32ProfileNum = pCmd->u32Arg1;
+
+	dfParams_t *p;
+
+	if (( u32ProfileNum == 0 ) || ( u32ProfileNum == dfProfile + 1 ))
+	{
+		dfCRC = CalcPageCRC( DataFlash.params );
+		p = (dfParams_t*)&DataFlash.p;
+	}
+	else
+	{
+		if ( u32ProfileNum > DATAFLASH_PROFILES_MAX )
+		{
+			myprintf( "Invalid profile #.\n" );
+			return 1;
+		}
+
+		p = (dfParams_t*)(DATAFLASH_PROFILES_BASE+DATAFLASH_PARAMS_SIZE*(u32ProfileNum-1));
+	}
+
+	MemCpy( &hidData[0], (uint8_t *)p, DATAFLASH_PARAMS_SIZE );
+	MemCpy( &hidData[DATAFLASH_PARAMS_SIZE], ((uint8_t *)&DataFlash.i), DATAFLASH_INFOS_SIZE );
+
+	dfInfos_t * di = (dfInfos_t*)&hidData[DATAFLASH_PARAMS_SIZE];
+
+	di->Format = HID_PROFILE_FORMAT;
+	di->Build = __BUILD3;
+
+	hidInDataPtr = &hidData[0];
+	hidStartInReport( HID_PROFILE_LENGTH );
+
+	return 0;
+}
+
+
+//-------------------------------------------------------------------------
+// Read Configuration
+//-------------------------------------------------------------------------
+__myevic__ uint32_t hidSetProfile( CMD_T *pCmd )
+{
+	myprintf( "Set Profile command - Profile: %d\n", pCmd->u32Arg1 );
+	hidDataIndex = 0;
+	return 0;
+}
+
+
+//-------------------------------------------------------------------------
+// Monitoring
+//-------------------------------------------------------------------------
+__myevic__ uint32_t hidGetMonData( CMD_T *pCmd )
+{
+	uint32_t u32StartAddr;
+	uint32_t u32ParamLen;
+
+	u32StartAddr = pCmd->u32Arg1;
+	u32ParamLen = pCmd->u32Arg2;
+
+//	myprintf( "Get Monitoring Data command - Start Addr: %d    Param Len: %d\n", pCmd->u32Arg1, pCmd->u32Arg2 );
+
+	if ( u32StartAddr != 0 || u32ParamLen != 0x40 )
+	{
+//		myprintf( "Invalid parameters\n" );
+		return 1;
+	}
+
+	HIDMonData_t *mondata = (HIDMonData_t*)hidData;
+
+	MemSet( mondata, 0, u32ParamLen );
+
+	mondata->Timestamp = TMR2Counter / 10;
+
+	mondata->IsFiring = gFlags.firing;
+	mondata->IsCharging = gFlags.battery_charging;
+	mondata->IsCelsius = dfIsCelsius;
+
+	uint16_t temp = dfIsCelsius ? FarenheitToC( AtoTemp ) : AtoTemp;
+
+	if ( gFlags.firing )
+	{
+		for ( int i = 0 ; i < NumBatteries ; ++i )
+		{
+			mondata->BatteryVoltage[i] = RTBVolts[i] - 275;
+		}
+
+		if ( ISMODETC(dfMode) )
+		{
+			mondata->Temperature = temp;
+		}
+
+		mondata->OutputVoltage = AtoVolts;
+		mondata->OutputCurrent = AtoCurrent * 10;
+	}
+	else
+	{
+		for ( int i = 0 ; i < NumBatteries ; ++i )
+		{
+			mondata->BatteryVoltage[i] = BattVolts[i] - 275;
+		}
+
+		if ( ISMODETC(dfMode) )
+		{
+			ReadAtoTemp();
+			mondata->Temperature = temp;
+		}
+	}
+
+	if ( ISMODETC(dfMode) )
+	{
+		mondata->PowerSet = dfTCPower;
+		mondata->TemperatureSet = dfTemp;
+	}
+	else
+	{
+		mondata->PowerSet = dfPower;
+	}
+
+	mondata->Resistance = dfResistance * 10 + RezMillis;
+	mondata->RealResistance = AtoRezMilli;
+
+	mondata->BoardTemperature = BoardTemp;
+
+	hidInDataPtr = &hidData[u32StartAddr];
+	hidStartInReport( u32ParamLen );
+
 	return 0;
 }
 
@@ -929,6 +1129,21 @@ int32_t hidProcessCommand( uint8_t *pu8Buffer, uint32_t u32BufferLen )
 			hidResetParamCmd( &hidCmd );
 			break;
 		}
+		case HID_CMD_GETMONDATA:
+		{
+			hidGetMonData( &hidCmd );
+			break;
+		}
+		case HID_CMD_GETPROFILE:
+		{
+			hidGetProfile( &hidCmd );
+			break;
+		}
+		case HID_CMD_SETPROFILE:
+		{
+			hidSetProfile( &hidCmd );
+			break;
+		}
 		case HID_CMD_SETLOGO:
 		{
 			hidBootLogoCmd( &hidCmd );
@@ -999,6 +1214,72 @@ __myevic__ void hidGetOutReport( uint8_t *pu8Buffer, uint32_t u32BufferLen )
 
 	switch ( hidCmd.u8Cmd )
 	{
+		case HID_CMD_SETPROFILE:
+		{
+			USBD_MemCopy( hidDataPtr, pu8Buffer, EP3_MAX_PKT_SIZE );
+			hidDataIndex += EP3_MAX_PKT_SIZE;
+
+			if ( hidDataIndex >= u32DataSize )
+			{
+				u8Cmd = HID_CMD_NONE;
+
+				dfParams_t *p = (dfParams_t*)&hidData[0];
+				dfInfos_t  *i = (dfInfos_t*)&hidData[DATAFLASH_PARAMS_SIZE];
+
+				if ( i->Format != HID_PROFILE_FORMAT || p->Magic != DFMagicNumber )
+				{
+					myprintf( "Incompatible parameters format.\n" );
+					break;
+				}
+
+				if ( u32StartAddr > DATAFLASH_PROFILES_MAX )
+				{
+					myprintf( "Invalid profile #.\n" );
+					break;
+				}
+
+				if ( u32StartAddr == 0 ) // profile #
+				{
+					if ( p->Profile != dfProfile )
+					{
+						// Profile selection change
+						SaveProfile();
+					}
+
+					MemCpy( DataFlash.params, p, DATAFLASH_PARAMS_SIZE );
+
+					DFCheckValuesValidity();
+					UpdateDataFlash();
+				}
+				else
+				{
+					p->Profile = u32StartAddr - 1;
+					p->PCRC = CalcPageCRC( (uint32_t*)p );
+
+					uint8_t page[FMC_FLASH_PAGE_SIZE] __attribute__((aligned(4)));
+
+					uint32_t offset = p->Profile * DATAFLASH_PARAMS_SIZE;
+
+					MemCpy( page, (void*)DATAFLASH_PROFILES_BASE, FMC_FLASH_PAGE_SIZE );
+					MemCpy( page + offset, p, DATAFLASH_PARAMS_SIZE );
+
+					SYS_UnlockReg();
+					FMC_ENABLE_ISP();
+					FMC_ENABLE_AP_UPDATE();
+
+					FMCEraseWritePage( DATAFLASH_PROFILES_BASE, (uint32_t*)page );
+
+					FMC_DISABLE_AP_UPDATE();
+					FMC_DISABLE_ISP();
+					SYS_LockReg();
+				}
+
+				myprintf( "Set Profile command complete.\n" );
+			}
+
+			break;
+		}
+
 		case HID_CMD_SETPARAMS:
 		{
 			USBD_MemCopy( hidDataPtr, pu8Buffer, EP3_MAX_PKT_SIZE );
@@ -1195,11 +1476,35 @@ __myevic__ void hidGetOutReport( uint8_t *pu8Buffer, uint32_t u32BufferLen )
 			break;
 		}
 
+		case HID_CMD_SETDATETIME:
+		{
+			HIDDateTime_t *dt = (HIDDateTime_t*)pu8Buffer;
+
+			if ( dt->Year >= 2000 && dt->Year <= 2099 )
+			{
+				S_RTC_TIME_DATA_T rtd;
+				rtd.u32Year = dt->Year;
+				rtd.u32Month = dt->Month;
+				rtd.u32Day = dt->Day;
+				rtd.u32DayOfWeek = 0;
+				rtd.u32Hour = dt->Hour;
+				rtd.u32Minute = dt->Minute;
+				rtd.u32Second = dt->Second;
+				rtd.u32TimeScale = RTC_CLOCK_24;
+				SetRTC( &rtd );
+			}
+
+			u8Cmd = HID_CMD_NONE;
+
+			myprintf( "Set Date/Time command complete.\n" );
+			break;
+		}
+
 		default:
 		{
 			if ( hidProcessCommand( pu8Buffer, u32BufferLen ) )
 			{
-				myprintf( "Unknown HID command!\n" );
+				myprintf( "Unknown HID command %02X!\n", hidCmd.u8Cmd );
 			}
 			return;
 		}
